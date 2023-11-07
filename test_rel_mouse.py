@@ -21,25 +21,25 @@ value = 0
 
 prev_x, prev_y = None, None
 
-def condition_satisfied(dist):
-    if dist < 0.05:
+def condition_satisfied(dist_left_click):
+    if dist_left_click < 0.05:
         return True  
     else :
         return False
 
-def check_condition_wrapper(dist):
-    return lambda: check_condition(dist)
+def check_condition_wrapper(dist_left_click):
+    return lambda: check_condition(dist_left_click)
 
-def check_condition(dist):
+def check_condition(dist_left_click):
     global value
-    if condition_satisfied(dist):  
+    if condition_satisfied(dist_left_click):  
         value += 1
     else:
         value = 0
         return
 
     duration = 1  
-    threading.Timer(duration, check_condition_wrapper(dist)).start()
+    threading.Timer(duration, check_condition_wrapper(dist_left_click)).start()
 
 def moveMouse(wrist_x,wrist_y):
     global prev_x,prev_y
@@ -49,9 +49,9 @@ def moveMouse(wrist_x,wrist_y):
 
     point1 = (thumb_x, thumb_y)
     point2 = (index_x, index_y)
-    dist = np.linalg.norm(np.array(point1) - np.array(point2))
+    dist_left_click = np.linalg.norm(np.array(point1) - np.array(point2))
 
-    if dist < 0.05:
+    if dist_left_click < 0.05:
         if prev_x is not None and prev_y is not None:
             diff_x, diff_y = mousePositionX - prev_x, mousePositionY - prev_y
             # Do something with the differences, e.g., move the mouse
@@ -72,6 +72,15 @@ def left_click(distance):
     if value > 6:
         pyautogui.doubleClick()
         value = 0
+
+    cv2.waitKey(1)
+
+def right_click():
+    font = cv2.FONT_HERSHEY_SIMPLEX
+    cv2.putText(frame,'RIGHT CLICK',(10,100), font, 4,(255,255,255),2,cv2.LINE_AA)
+    
+    pyautogui.rightClick()
+    print("RIGHT CLICK")
 
     cv2.waitKey(1)
 
@@ -99,6 +108,7 @@ while True:
             index_x = hand_landmarks.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP].x
             index_y = hand_landmarks.landmark[mp_hands.HandLandmark.INDEX_FINGER_TIP].y
             middle_y = hand_landmarks.landmark[mp_hands.HandLandmark.MIDDLE_FINGER_TIP].y
+            middle_x = hand_landmarks.landmark[mp_hands.HandLandmark.MIDDLE_FINGER_TIP].x
             wrist_x = hand_landmarks.landmark[9].x
             wrist_y = hand_landmarks.landmark[9].y
 
@@ -139,7 +149,11 @@ while True:
                 # Task for the right hand
                 point1 = (thumb_x, thumb_y)
                 point2 = (index_x, index_y)
-                dist = np.linalg.norm(np.array(point1) - np.array(point2))
+                point3 = (middle_x,middle_y)
+
+                dist_left_click = np.linalg.norm(np.array(point1) - np.array(point2))
+
+                dist_right_click = np.linalg.norm(np.array(point1) - np.array(point3))
 
                 if thumb_y < middle_y:
                     hand_gesture = 'pointing up'
@@ -159,8 +173,13 @@ while True:
                     current_pos = pyautogui.position()
                     pyautogui.moveTo(current_pos[0], current_pos[1] + (pyautogui.position()[1] - scroll_start[1]))
 
-                if dist < 0.05:  
-                    left_click(dist)
+                if dist_left_click < 0.05:  
+                    left_click(dist_left_click)
+
+                if dist_right_click < 0.05:  
+                    right_click()
+                
+                
                 
 
         cv2.imshow("Hand Gesture", frame)
